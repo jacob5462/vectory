@@ -1,0 +1,54 @@
+
+-- Initialize variables
+_G.PullVector = true
+_G.PullVectorDistance = 15
+_G.PullVectorForce = 50
+
+local player = game:GetService("Players").LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local ballCaught = false
+local connection
+
+-- Function to handle the pulling logic
+local function pullVectorLogic()
+    -- Ensure connection is not already set
+    if connection then
+        connection:Disconnect()
+    end
+    connection = game:GetService("RunService").Heartbeat:Connect(function()
+        if _G.PullVector and not ballCaught then
+            for _, v in ipairs(workspace:GetChildren()) do
+                if v.Name == "Football" and v.Velocity.Magnitude > 2 then -- Ensure ball is not on the ground
+                    local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        local distance = (v.Position - hrp.Position).Magnitude
+                        if distance < tonumber(_G.PullVectorDistance) and humanoid:GetState() ~= Enum.HumanoidStateType.Freefall then
+                            local direction = (v.Position - hrp.Position).Unit
+                            hrp.Velocity = direction * tonumber(_G.PullVectorForce)
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+_G.PullVector = true -- Set to true to enable, false to disable
+if _G.PullVector then
+    pullVectorLogic()  -- Start the pulling logic
+else
+    if connection then
+        connection:Disconnect()
+        connection = nil
+    end
+end
+
+character.ChildAdded:Connect(function(child)
+    if child.Name == "Football" then
+        ballCaught = true
+        task.wait(1)  -- Add a small delay before re-enabling pulling logic if necessary
+        ballCaught = false
+    end
+end)
